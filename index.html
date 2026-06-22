@@ -15,11 +15,11 @@ h1{font-size:1.4em;text-align:center;margin:20px 0 8px;color:#fff}
 .btn{display:block;width:100%;padding:14px;border:none;border-radius:8px;font-size:1em;cursor:pointer;margin-bottom:8px;transition:all 0.2s;text-align:left;position:relative}
 .btn-key{background:#2a2a2a;color:#fff}
 .btn-key:active{background:#333}
-.btn-key .flag{font-size:1.3em;margin-right:8px}
 .btn-key .hint{float:right;color:#555;font-size:0.8em;line-height:1.6em}
 .btn-sub{background:#1e3a5f;color:#7cb3f0;text-align:center}
 .btn-sub:active{background:#254a75}
 .btn.copied-state{background:#1b5e20 !important;color:#fff !important}
+.btn.copied-state .hint{color:#a5d6a7 !important}
 .section{margin-top:20px}
 .section h3{font-size:0.95em;color:#aaa;margin-bottom:8px}
 .help-item{padding:10px 0;border-bottom:1px solid #222;font-size:0.9em;color:#bbb}
@@ -35,7 +35,7 @@ h1{font-size:1.4em;text-align:center;margin:20px 0 8px;color:#fff}
 <body>
 <div class="container">
   <h1>FastReality VPN</h1>
-  <p class="subtitle">Ваши VPN-ключи</p>
+  <p class="subtitle"></p>
 
   <div id="keys"></div>
 
@@ -63,37 +63,46 @@ h1{font-size:1.4em;text-align:center;margin:20px 0 8px;color:#fff}
 (function(){
   var params = new URLSearchParams(location.hash.slice(1));
   var keysDiv = document.getElementById('keys');
-
-  var sk = params.get('sk');
-  var fi = params.get('fi');
-  var nl = params.get('nl');
-  var sub = params.get('sub');
+  var uuid = params.get('uuid');
+  var subB64 = params.get('sub');
   var uid = params.get('uid');
 
-  if (uid) {
-    document.querySelector('h1').textContent = 'FastReality VPN';
-    document.querySelector('.subtitle').textContent = '\u{1F464} ' + uid;
-  }
+  if (uid) document.querySelector('.subtitle').textContent = uid;
 
-  if (!sk && !fi && !nl) {
+  if (!uuid) {
     keysDiv.innerHTML = '<div class="empty">Откройте эту страницу через ссылку из бота.<br><br>Напишите <b>/start</b> боту <a href="https://t.me/FastRealityBot" style="color:#7cb3f0">@FastRealityBot</a></div>';
     return;
   }
 
+  var base = 'encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality'
+    + '&sni=www.raiffeisen.at&fp=qq'
+    + '&pbk=V8rq74ZgIaIZrRAjXAq1d6tqin7sma5FhWtUCunZZkI'
+    + '&sid=05e202202fdf954a';
+
+  var servers = [
+    {code: 'sk', ip: '185.112.249.22', flag: '🇸🇰', name: 'Словакия'},
+    {code: 'fi', ip: '195.133.26.43',  flag: '🇫🇮', name: 'Финляндия'},
+    {code: 'nl', ip: '109.120.158.245',flag: '🇳🇱', name: 'Нидерланды'}
+  ];
+
   var links = {};
   var html = '<div class="card"><h2>Нажмите чтобы скопировать ключ</h2>';
 
-  if (sk) { links.sk = sk; html += '<button class="btn btn-key" data-key="sk"><span class="flag">\u{1F1F8}\u{1F1F0}</span>Словакия<span class="hint">копировать</span></button>'; }
-  if (fi) { links.fi = fi; html += '<button class="btn btn-key" data-key="fi"><span class="flag">\u{1F1EB}\u{1F1EE}</span>Финляндия<span class="hint">копировать</span></button>'; }
-  if (nl) { links.nl = nl; html += '<button class="btn btn-key" data-key="nl"><span class="flag">\u{1F1F3}\u{1F1F1}</span>Нидерланды<span class="hint">копировать</span></button>'; }
-
+  for (var i = 0; i < servers.length; i++) {
+    var s = servers[i];
+    var link = 'vless://' + uuid + '@' + s.ip + ':443?' + base + '#' + encodeURIComponent(s.flag + ' ' + s.code.toUpperCase());
+    links[s.code] = link;
+    html += '<button class="btn btn-key" data-key="' + s.code + '">'
+      + s.flag + ' ' + s.name
+      + '<span class="hint">копировать</span></button>';
+  }
   html += '</div>';
 
-  if (sub) {
-    links.sub = sub;
+  if (subB64) {
+    try { links.sub = atob(subB64); } catch(e) { links.sub = subB64; }
     html += '<div class="card">';
     html += '<h2>Подписка (все серверы)</h2>';
-    html += '<button class="btn btn-sub" data-key="sub">\u{1F517} Скопировать ссылку-подписку</button>';
+    html += '<button class="btn btn-sub" data-key="sub">🔗 Скопировать ссылку-подписку</button>';
     html += '</div>';
   }
 
@@ -102,21 +111,16 @@ h1{font-size:1.4em;text-align:center;margin:20px 0 8px;color:#fff}
   keysDiv.addEventListener('click', function(e) {
     var btn = e.target.closest('[data-key]');
     if (!btn) return;
-    var key = btn.getAttribute('data-key');
-    var text = links[key];
+    var text = links[btn.getAttribute('data-key')];
     if (!text) return;
 
     navigator.clipboard.writeText(text).then(function() {
-      var origText = btn.innerHTML;
       btn.classList.add('copied-state');
       var hint = btn.querySelector('.hint');
       if (hint) hint.textContent = '✅ скопировано';
-      else btn.textContent = '✅ Скопировано';
-
       setTimeout(function() {
         btn.classList.remove('copied-state');
         if (hint) hint.textContent = 'копировать';
-        else btn.innerHTML = origText;
       }, 1500);
     });
   });
