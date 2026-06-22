@@ -12,14 +12,14 @@ h1{font-size:1.4em;text-align:center;margin:20px 0 8px;color:#fff}
 .subtitle{text-align:center;color:#888;font-size:0.85em;margin-bottom:24px}
 .card{background:#1a1a1a;border-radius:12px;padding:16px;margin-bottom:12px}
 .card h2{font-size:1em;margin-bottom:12px;color:#ccc}
-.btn{display:block;width:100%;padding:14px;border:none;border-radius:8px;font-size:1em;cursor:pointer;margin-bottom:8px;transition:background 0.2s}
-.btn-key{background:#2a2a2a;color:#fff;text-align:left;position:relative}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:8px;font-size:1em;cursor:pointer;margin-bottom:8px;transition:all 0.2s;text-align:left;position:relative}
+.btn-key{background:#2a2a2a;color:#fff}
 .btn-key:active{background:#333}
 .btn-key .flag{font-size:1.3em;margin-right:8px}
-.btn-key .copied{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#4caf50;font-size:0.85em;opacity:0;transition:opacity 0.3s}
-.btn-key .copied.show{opacity:1}
-.btn-sub{background:#1e3a5f;color:#7cb3f0}
+.btn-key .hint{float:right;color:#555;font-size:0.8em;line-height:1.6em}
+.btn-sub{background:#1e3a5f;color:#7cb3f0;text-align:center}
 .btn-sub:active{background:#254a75}
+.btn.copied-state{background:#1b5e20 !important;color:#fff !important}
 .section{margin-top:20px}
 .section h3{font-size:0.95em;color:#aaa;margin-bottom:8px}
 .help-item{padding:10px 0;border-bottom:1px solid #222;font-size:0.9em;color:#bbb}
@@ -30,10 +30,6 @@ h1{font-size:1.4em;text-align:center;margin:20px 0 8px;color:#fff}
 .app-link{display:block;padding:10px;background:#2a2a2a;border-radius:8px;color:#7cb3f0;text-decoration:none;font-size:0.85em;text-align:center}
 .app-link:active{background:#333}
 .empty{text-align:center;padding:40px 16px;color:#666}
-.sub-url{word-break:break-all;font-size:0.8em;color:#666;margin-top:8px;padding:8px;background:#111;border-radius:6px;cursor:pointer}
-.sub-url:active{background:#1a1a1a}
-.qr-wrap{text-align:center;margin:12px 0}
-.qr-wrap canvas{border-radius:8px}
 </style>
 </head>
 <body>
@@ -65,60 +61,60 @@ h1{font-size:1.4em;text-align:center;margin:20px 0 8px;color:#fff}
 
 <script>
 (function(){
-  const params = new URLSearchParams(location.hash.slice(1));
-  const keysDiv = document.getElementById('keys');
+  var params = new URLSearchParams(location.hash.slice(1));
+  var keysDiv = document.getElementById('keys');
 
-  const sk = params.get('sk');
-  const fi = params.get('fi');
-  const nl = params.get('nl');
-  const sub = params.get('sub');
+  var sk = params.get('sk');
+  var fi = params.get('fi');
+  var nl = params.get('nl');
+  var sub = params.get('sub');
 
   if (!sk && !fi && !nl) {
     keysDiv.innerHTML = '<div class="empty">Откройте эту страницу через ссылку из бота.<br><br>Напишите <b>/start</b> боту <a href="https://t.me/FastRealityBot" style="color:#7cb3f0">@FastRealityBot</a></div>';
     return;
   }
 
-  let html = '<div class="card"><h2>Ваши серверы</h2>';
+  var links = {};
+  var html = '<div class="card"><h2>Нажмите чтобы скопировать ключ</h2>';
 
-  if (sk) html += keyBtn('🇸🇰', 'Словакия', sk);
-  if (fi) html += keyBtn('🇫🇮', 'Финляндия', fi);
-  if (nl) html += keyBtn('🇳🇱', 'Нидерланды', nl);
+  if (sk) { links.sk = sk; html += '<button class="btn btn-key" data-key="sk"><span class="flag">\u{1F1F8}\u{1F1F0}</span>Словакия<span class="hint">копировать</span></button>'; }
+  if (fi) { links.fi = fi; html += '<button class="btn btn-key" data-key="fi"><span class="flag">\u{1F1EB}\u{1F1EE}</span>Финляндия<span class="hint">копировать</span></button>'; }
+  if (nl) { links.nl = nl; html += '<button class="btn btn-key" data-key="nl"><span class="flag">\u{1F1F3}\u{1F1F1}</span>Нидерланды<span class="hint">копировать</span></button>'; }
 
   html += '</div>';
 
   if (sub) {
+    links.sub = sub;
     html += '<div class="card">';
-    html += '<h2>Все серверы (подписка)</h2>';
-    html += '<button class="btn btn-sub" onclick="copyText(this,\'' + escAttr(sub) + '\')">Скопировать ссылку-подписку</button>';
-    html += '<div class="sub-url" onclick="copyText(this,\'' + escAttr(sub) + '\')">' + escHtml(sub) + '</div>';
+    html += '<h2>Подписка (все серверы)</h2>';
+    html += '<button class="btn btn-sub" data-key="sub">\u{1F517} Скопировать ссылку-подписку</button>';
     html += '</div>';
   }
 
   keysDiv.innerHTML = html;
 
-  function keyBtn(flag, name, link) {
-    return '<button class="btn btn-key" onclick="copyText(this,\'' + escAttr(link) + '\')">'
-      + '<span class="flag">' + flag + '</span>' + name
-      + '<span class="copied">Скопировано</span></button>';
-  }
+  keysDiv.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-key]');
+    if (!btn) return;
+    var key = btn.getAttribute('data-key');
+    var text = links[key];
+    if (!text) return;
 
-  function escAttr(s) { return s.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
-  function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-})();
+    navigator.clipboard.writeText(text).then(function() {
+      var origText = btn.innerHTML;
+      btn.classList.add('copied-state');
+      var hint = btn.querySelector('.hint');
+      if (hint) hint.textContent = '✅ скопировано';
+      else btn.textContent = '✅ Скопировано';
 
-function copyText(btn, text) {
-  navigator.clipboard.writeText(text).then(function() {
-    var el = btn.querySelector('.copied');
-    if (!el) {
-      el = document.createElement('span');
-      el.className = 'copied';
-      el.textContent = 'Скопировано';
-      btn.appendChild(el);
-    }
-    el.classList.add('show');
-    setTimeout(function(){ el.classList.remove('show'); }, 1500);
+      setTimeout(function() {
+        btn.classList.remove('copied-state');
+        if (hint) hint.textContent = 'копировать';
+        else btn.innerHTML = origText;
+      }, 1500);
+    });
   });
-}
+})();
 </script>
 </body>
 </html>
