@@ -65,7 +65,7 @@ h1{font-size:1.4em;text-align:center;margin:20px 0 8px;color:#fff}
 
 <script>
 (function(){
-  const params = new URLSearchParams(location.search);
+  const params = new URLSearchParams(location.hash.slice(1));
   const keysDiv = document.getElementById('keys');
 
   const sk = params.get('sk');
