@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FastReality VPN</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f0f0f;color:#e0e0e0;min-height:100vh;padding:16px}
+.container{max-width:480px;margin:0 auto}
+h1{font-size:1.4em;text-align:center;margin:20px 0 8px;color:#fff}
+.subtitle{text-align:center;color:#888;font-size:0.85em;margin-bottom:24px}
+.card{background:#1a1a1a;border-radius:12px;padding:16px;margin-bottom:12px}
+.card h2{font-size:1em;margin-bottom:12px;color:#ccc}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:8px;font-size:1em;cursor:pointer;margin-bottom:8px;transition:background 0.2s}
+.btn-key{background:#2a2a2a;color:#fff;text-align:left;position:relative}
+.btn-key:active{background:#333}
+.btn-key .flag{font-size:1.3em;margin-right:8px}
+.btn-key .copied{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#4caf50;font-size:0.85em;opacity:0;transition:opacity 0.3s}
+.btn-key .copied.show{opacity:1}
+.btn-sub{background:#1e3a5f;color:#7cb3f0}
+.btn-sub:active{background:#254a75}
+.section{margin-top:20px}
+.section h3{font-size:0.95em;color:#aaa;margin-bottom:8px}
+.help-item{padding:10px 0;border-bottom:1px solid #222;font-size:0.9em;color:#bbb}
+.help-item:last-child{border-bottom:none}
+.help-item b{color:#e0e0e0}
+.help-num{display:inline-block;width:24px;height:24px;background:#2a2a2a;border-radius:50%;text-align:center;line-height:24px;font-size:0.8em;color:#888;margin-right:8px}
+.apps{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.app-link{display:block;padding:10px;background:#2a2a2a;border-radius:8px;color:#7cb3f0;text-decoration:none;font-size:0.85em;text-align:center}
+.app-link:active{background:#333}
+.empty{text-align:center;padding:40px 16px;color:#666}
+.sub-url{word-break:break-all;font-size:0.8em;color:#666;margin-top:8px;padding:8px;background:#111;border-radius:6px;cursor:pointer}
+.sub-url:active{background:#1a1a1a}
+.qr-wrap{text-align:center;margin:12px 0}
+.qr-wrap canvas{border-radius:8px}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>FastReality VPN</h1>
+  <p class="subtitle">Ваши VPN-ключи</p>
+
+  <div id="keys"></div>
+
+  <div class="card section">
+    <h3>VPN не работает?</h3>
+    <div class="help-item"><span class="help-num">1</span> Убедитесь что <b>Fingerprint = qq</b> в настройках</div>
+    <div class="help-item"><span class="help-num">2</span> Попробуйте <b>другой сервер</b> (SK/FI/NL)</div>
+    <div class="help-item"><span class="help-num">3</span> Запросите новую ссылку у бота: <b>/start</b></div>
+  </div>
+
+  <div class="card section">
+    <h3>Приложения</h3>
+    <div class="apps">
+      <a class="app-link" href="https://apps.apple.com/app/id6596777532">Hiddify iOS</a>
+      <a class="app-link" href="https://apps.apple.com/app/id6504287215">Happ iOS</a>
+      <a class="app-link" href="https://play.google.com/store/apps/details?id=com.happproxy">Happ Android</a>
+      <a class="app-link" href="https://play.google.com/store/apps/details?id=com.v2ray.ang">v2rayNG</a>
+      <a class="app-link" href="https://github.com/hiddify/hiddify-app/releases">Hiddify Desktop</a>
+      <a class="app-link" href="https://github.com/2dust/v2rayN/releases">v2rayN Windows</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const params = new URLSearchParams(location.search);
+  const keysDiv = document.getElementById('keys');
+
+  const sk = params.get('sk');
+  const fi = params.get('fi');
+  const nl = params.get('nl');
+  const sub = params.get('sub');
+
+  if (!sk && !fi && !nl) {
+    keysDiv.innerHTML = '<div class="empty">Откройте эту страницу через ссылку из бота.<br><br>Напишите <b>/start</b> боту <a href="https://t.me/FastRealityBot" style="color:#7cb3f0">@FastRealityBot</a></div>';
+    return;
+  }
+
+  let html = '<div class="card"><h2>Ваши серверы</h2>';
+
+  if (sk) html += keyBtn('🇸🇰', 'Словакия', sk);
+  if (fi) html += keyBtn('🇫🇮', 'Финляндия', fi);
+  if (nl) html += keyBtn('🇳🇱', 'Нидерланды', nl);
+
+  html += '</div>';
+
+  if (sub) {
+    html += '<div class="card">';
+    html += '<h2>Все серверы (подписка)</h2>';
+    html += '<button class="btn btn-sub" onclick="copyText(this,\'' + escAttr(sub) + '\')">Скопировать ссылку-подписку</button>';
+    html += '<div class="sub-url" onclick="copyText(this,\'' + escAttr(sub) + '\')">' + escHtml(sub) + '</div>';
+    html += '</div>';
+  }
+
+  keysDiv.innerHTML = html;
+
+  function keyBtn(flag, name, link) {
+    return '<button class="btn btn-key" onclick="copyText(this,\'' + escAttr(link) + '\')">'
+      + '<span class="flag">' + flag + '</span>' + name
+      + '<span class="copied">Скопировано</span></button>';
+  }
+
+  function escAttr(s) { return s.replace(/'/g, "\\'").replace(/"/g, '&quot;'); }
+  function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+})();
+
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(function() {
+    var el = btn.querySelector('.copied');
+    if (!el) {
+      el = document.createElement('span');
+      el.className = 'copied';
+      el.textContent = 'Скопировано';
+      btn.appendChild(el);
+    }
+    el.classList.add('show');
+    setTimeout(function(){ el.classList.remove('show'); }, 1500);
+  });
+}
+</script>
+</body>
+</html>
