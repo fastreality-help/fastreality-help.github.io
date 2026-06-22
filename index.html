@@ -99,7 +99,11 @@ h1{font-size:1.4em;text-align:center;margin:20px 0 8px;color:#fff}
   html += '</div>';
 
   if (subB64) {
-    try { links.sub = atob(subB64); } catch(e) { links.sub = subB64; }
+    try {
+      var b = subB64.replace(/-/g,'+').replace(/_/g,'/');
+      while (b.length % 4) b += '=';
+      links.sub = atob(b);
+    } catch(e) { links.sub = subB64; }
     html += '<div class="card">';
     html += '<h2>Подписка (все серверы)</h2>';
     html += '<button class="btn btn-sub" data-key="sub">🔗 Скопировать ссылку-подписку</button>';
