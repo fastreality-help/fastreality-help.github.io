@@ -68,6 +68,12 @@ h1{font-size:1.4em;text-align:center;margin:20px 0 8px;color:#fff}
   var fi = params.get('fi');
   var nl = params.get('nl');
   var sub = params.get('sub');
+  var uid = params.get('uid');
+
+  if (uid) {
+    document.querySelector('h1').textContent = 'FastReality VPN';
+    document.querySelector('.subtitle').textContent = '\u{1F464} ' + uid;
+  }
 
   if (!sk && !fi && !nl) {
     keysDiv.innerHTML = '<div class="empty">Откройте эту страницу через ссылку из бота.<br><br>Напишите <b>/start</b> боту <a href="https://t.me/FastRealityBot" style="color:#7cb3f0">@FastRealityBot</a></div>';
