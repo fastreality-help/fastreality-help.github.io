@@ -67,6 +67,9 @@
     .btn-danger { background: #3a1a1a; color: #f87171; text-align: center; margin-top: 4px; }
     .btn-danger:active { background: #4a2020; }
 
+    .btn-support { background: #1a2a1a; color: #6dbf6d; text-align: center; margin-top: 4px; text-decoration: none; }
+    .btn-support:active { background: #223322; }
+
     /* === Лента объявлений === */
     .feed {
       border-radius: 10px;
@@ -176,6 +179,10 @@
 
     <div id="revoke-card"></div>
 
+    <div class="card" style="margin-top:8px">
+      <a id="support-btn" class="btn btn-support" href="mailto:fastrealitysupport@gmail.com?subject=Помощь">✉️ Написать в поддержку</a>
+    </div>
+
     <div class="card section">
       <h3>Приложения</h3>
       <div class="apps">
@@ -223,6 +230,12 @@
       var uid    = params.get('uid');
 
       if (uid) document.querySelector('.subtitle').textContent = uid;
+
+      var supportBtn = document.getElementById('support-btn');
+      if (supportBtn) {
+        var subject = uid ? 'Помощь - tg_id: ' + uid : 'Помощь';
+        supportBtn.href = 'mailto:fastrealitysupport@gmail.com?subject=' + encodeURIComponent(subject);
+      }
 
       if (!uuid) {
         keysDiv.innerHTML = '<div class="empty">Откройте эту страницу через ссылку из бота.<br><br>Напишите <b>/start</b> боту <a href="https://t.me/FastRealityBot" style="color:#7cb3f0">@FastRealityBot</a></div>';
