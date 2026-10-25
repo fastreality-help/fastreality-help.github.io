@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
   <title>FastReality VPN</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -237,29 +238,42 @@
         supportBtn.href = 'mailto:fastrealitysupport@gmail.com?subject=' + encodeURIComponent(subject);
       }
 
-      if (!uuid) {
-        keysDiv.innerHTML = '<div class="empty">Откройте эту страницу через ссылку из бота.<br><br>Напишите <b>/start</b> боту <a href="https://t.me/FastRealityBot" style="color:#7cb3f0">@FastRealityBot</a></div>';
+      var servers = [
+        { code: 'sk', flag: '🇸🇰', name: 'Словакия' },
+        { code: 'fi', flag: '🇫🇮', name: 'Финляндия' },
+      ];
+
+      function fromB64(v) {
+        var t = v.replace(/-/g, '+').replace(/_/g, '/');
+        while (t.length % 4) t += '=';
+        return atob(t);
+      }
+
+      // Готовые vless:// ссылки приходят из персональной ссылки (#l_sk=…&l_fi=…); параметров серверов на странице нет
+      var links = {};
+      var found = 0;
+      for (var i = 0; i < servers.length; i++) {
+        var rawLink = params.get('l_' + servers[i].code);
+        if (!rawLink) continue;
+        try {
+          var l = fromB64(rawLink);
+          if (/^vless:\/\//.test(l)) { links[servers[i].code] = l; found++; }
+        } catch (e) {}
+      }
+
+      if (!found) {
+        if (uuid) {
+          keysDiv.innerHTML = '<div class="empty">Ссылка устарела.<br><br>Получите новую в боте: кнопка <b>🌐 Веб-кабинет</b> <a href="https://t.me/FastRealityBot" style="color:#7cb3f0">@FastRealityBot</a></div>';
+        } else {
+          keysDiv.innerHTML = '<div class="empty">Откройте эту страницу через ссылку из бота.<br><br>Напишите <b>/start</b> боту <a href="https://t.me/FastRealityBot" style="color:#7cb3f0">@FastRealityBot</a></div>';
+        }
         return;
       }
 
-      var base = 'encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality'
-        + '&sni=www.raiffeisen.at&fp=qq'
-        + '&pbk=V8rq74ZgIaIZrRAjXAq1d6tqin7sma5FhWtUCunZZkI'
-        + '&sid=05e202202fdf954a';
-
-      var servers = [
-        { code: 'sk', ip: '185.112.249.22', flag: '🇸🇰', name: 'Словакия' },
-        { code: 'fi', ip: '195.133.26.43',  flag: '🇫🇮', name: 'Финляндия' },
-      ];
-
-      var links = {};
       var html = '<div class="card"><h2>Нажмите чтобы скопировать ключ</h2>';
-
-      for (var i = 0; i < servers.length; i++) {
-        var s = servers[i];
-        var remark = s.flag + ' ' + s.code.toUpperCase() + (uid ? ' - ' + uid : '');
-        var link = 'vless://' + uuid + '@' + s.ip + ':443?' + base + '#' + encodeURIComponent(remark);
-        links[s.code] = link;
+      for (var j = 0; j < servers.length; j++) {
+        var s = servers[j];
+        if (!links[s.code]) continue;
         html += '<button class="btn btn-key" data-key="' + s.code + '">'
           + s.flag + ' ' + s.name
           + '<span class="hint">копировать</span></button>';
