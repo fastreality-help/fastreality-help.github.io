@@ -224,7 +224,9 @@
         })
         .catch(function() {});
 
+      // Параметры: фрагмент (#...); самый первый формат ссылок — query (?sk=...)
       var params = new URLSearchParams(location.hash.slice(1));
+      if (!location.hash.slice(1)) params = new URLSearchParams(location.search);
       var keysDiv = document.getElementById('keys');
       var uuid   = params.get('uuid');
       var subB64 = params.get('sub');
@@ -238,9 +240,14 @@
         supportBtn.href = 'mailto:fastrealitysupport@gmail.com?subject=' + encodeURIComponent(subject);
       }
 
+      var base = 'encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality'
+        + '&sni=www.raiffeisen.at&fp=qq'
+        + '&pbk=V8rq74ZgIaIZrRAjXAq1d6tqin7sma5FhWtUCunZZkI'
+        + '&sid=05e202202fdf954a';
+
       var servers = [
-        { code: 'sk', flag: '🇸🇰', name: 'Словакия' },
-        { code: 'fi', flag: '🇫🇮', name: 'Финляндия' },
+        { code: 'sk', ip: '185.112.249.22', flag: '\u{1F1F8}\u{1F1F0}', name: '\u0421\u043b\u043e\u0432\u0430\u043a\u0438\u044f' },
+        { code: 'fi', ip: '195.133.26.43',  flag: '\u{1F1EB}\u{1F1EE}', name: '\u0424\u0438\u043d\u043b\u044f\u043d\u0434\u0438\u044f' },
       ];
 
       function fromB64(v) {
@@ -249,24 +256,32 @@
         return atob(t);
       }
 
-      // Готовые vless:// ссылки приходят из персональной ссылки (#l_sk=…&l_fi=…); параметров серверов на странице нет
+      // Форматы ссылок кабинета (все должны открываться):
+      //  1) #uuid=..&uid=..&sub=..  (с 23.06) — ссылки собираются здесь из uuid;
+      //  2) #l_sk=..&l_fi=..        (с 26.10) — готовые vless:// в base64url;
+      //  3) #sk=..&fi=..&nl=..      и ?sk=..&fi=..&nl=.. (первые версии 23.06) — готовые vless:// открытым текстом.
       var links = {};
       var found = 0;
       for (var i = 0; i < servers.length; i++) {
-        var rawLink = params.get('l_' + servers[i].code);
-        if (!rawLink) continue;
-        try {
-          var l = fromB64(rawLink);
-          if (/^vless:\/\//.test(l)) { links[servers[i].code] = l; found++; }
-        } catch (e) {}
+        var sv = servers[i];
+        var l = null;
+        var enc = params.get('l_' + sv.code);
+        if (enc) { try { l = fromB64(enc); } catch (e) { l = null; } }
+        if (!l || !/^vless:\/\//.test(l)) {
+          var plain = params.get(sv.code);
+          l = (plain && /^vless:\/\//.test(plain)) ? plain : null;
+        }
+        if (!l && uuid) {
+          var remark = sv.flag + ' ' + sv.code.toUpperCase() + (uid ? ' - ' + uid : '');
+          l = 'vless://' + uuid + '@' + sv.ip + ':443?' + base + '#' + encodeURIComponent(remark);
+        }
+        if (l) { links[sv.code] = l; found++; }
       }
+      var nlPlain = params.get('nl');
+      if (nlPlain && /^vless:\/\//.test(nlPlain)) { links.nl = nlPlain; found++; }
 
       if (!found) {
-        if (uuid) {
-          keysDiv.innerHTML = '<div class="empty">Ссылка устарела.<br><br>Получите новую в боте: кнопка <b>🌐 Веб-кабинет</b> <a href="https://t.me/FastRealityBot" style="color:#7cb3f0">@FastRealityBot</a></div>';
-        } else {
-          keysDiv.innerHTML = '<div class="empty">Откройте эту страницу через ссылку из бота.<br><br>Напишите <b>/start</b> боту <a href="https://t.me/FastRealityBot" style="color:#7cb3f0">@FastRealityBot</a></div>';
-        }
+        keysDiv.innerHTML = '<div class="empty">\u041e\u0442\u043a\u0440\u043e\u0439\u0442\u0435 \u044d\u0442\u0443 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0443 \u0447\u0435\u0440\u0435\u0437 \u0441\u0441\u044b\u043b\u043a\u0443 \u0438\u0437 \u0431\u043e\u0442\u0430.<br><br>\u041d\u0430\u043f\u0438\u0448\u0438\u0442\u0435 <b>/start</b> \u0431\u043e\u0442\u0443 <a href="https://t.me/FastRealityBot" style="color:#7cb3f0">@FastRealityBot</a></div>';
         return;
       }
 
@@ -277,6 +292,10 @@
         html += '<button class="btn btn-key" data-key="' + s.code + '">'
           + s.flag + ' ' + s.name
           + '<span class="hint">копировать</span></button>';
+      }
+      if (links.nl) {
+        html += '<button class="btn btn-key" data-key="nl">\u{1F1F3}\u{1F1F1} \u041d\u0438\u0434\u0435\u0440\u043b\u0430\u043d\u0434\u044b'
+          + '<span class="hint">\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c</span></button>';
       }
       html += '</div>';
 
