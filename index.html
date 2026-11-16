@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-JfsZfTbBcLa7bu905n0XFNFmLgyA8LVlLRmcvrIrY0w=' 'unsafe-hashes' 'sha256-9gOBGqEQINNDuds+tkXbNzih6klbz+KeCyxEj4KRLeM='; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-CltcyJ9p5Eoq+w7fBcxX7oXHhzrFNnCHEid925pE2/k=' 'unsafe-hashes' 'sha256-9gOBGqEQINNDuds+tkXbNzih6klbz+KeCyxEj4KRLeM='; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; object-src 'none'">
   <meta name="referrer" content="no-referrer">
   <title>FastReality VPN</title>
   <style>
@@ -268,26 +268,52 @@
         supportBtn.href = 'mailto:fastrealitysupport@gmail.com?subject=' + encodeURIComponent(subject);
       }
 
-      var base = 'encryption=none&flow=xtls-rprx-vision&type=tcp&security=reality'
-        + '&sni=www.raiffeisen.at&fp=qq'
-        + '&pbk=V8rq74ZgIaIZrRAjXAq1d6tqin7sma5FhWtUCunZZkI'
-        + '&sid=05e202202fdf954a';
+      // Каждое направление хранит собственные параметры профиля.
+      var reality = {
+        sk: { sni: 'www.raiffeisen.at', fp: 'qq', pbk: 'V8rq74ZgIaIZrRAjXAq1d6tqin7sma5FhWtUCunZZkI', sid: '05e202202fdf954a', flow: 'xtls-rprx-vision' },
+        fi: { sni: 'www.raiffeisen.at', fp: 'qq', pbk: 'V8rq74ZgIaIZrRAjXAq1d6tqin7sma5FhWtUCunZZkI', sid: '05e202202fdf954a', flow: 'xtls-rprx-vision' }
+      };
+
+      var configurations = {
+        direct: {
+          sk: { ip: '89.46.42.92', port: 443 },
+          fi: { ip: '195.133.26.43', port: 443 }
+        },
+        ru1: {
+          sk: { ip: '109.248.59.180', port: 8443 },
+          fi: { ip: '109.248.59.180', port: 443 }
+        }
+      };
+      var configId = params.get('c');
+      var activeConfig = configId ? configurations[configId] : configurations.direct;
 
       var servers = [
-        { code: 'sk', ip: '89.46.42.92', flag: '\u{1F1F8}\u{1F1F0}', name: '\u0421\u043b\u043e\u0432\u0430\u043a\u0438\u044f' },
-        { code: 'fi', ip: '195.133.26.43',  flag: '\u{1F1EB}\u{1F1EE}', name: '\u0424\u0438\u043d\u043b\u044f\u043d\u0434\u0438\u044f' },
+        { code: 'sk', flag: '\u{1F1F8}\u{1F1F0}', name: '\u0421\u043b\u043e\u0432\u0430\u043a\u0438\u044f' },
+        { code: 'fi', flag: '\u{1F1EB}\u{1F1EE}', name: '\u0424\u0438\u043d\u043b\u044f\u043d\u0434\u0438\u044f' },
       ];
 
       function fromB64(v) {
         var t = v.replace(/-/g, '+').replace(/_/g, '/');
         while (t.length % 4) t += '=';
-        return atob(t);
+        var binary = atob(t);
+        var bytes = new Uint8Array(binary.length);
+        for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        if (typeof TextDecoder !== 'undefined') return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        return decodeURIComponent(escape(binary));
       }
 
-      // Форматы ссылок кабинета (все должны открываться):
-      //  1) #uuid=..&uid=..&sub=..  (с 23.06) — ссылки собираются здесь из uuid;
-      //  2) #l_sk=..&l_fi=..        (с 26.10) — готовые vless:// в base64url;
-      //  3) #sk=..&fi=..&nl=..      и ?sk=..&fi=..&nl=.. (первые версии 23.06) — готовые vless:// открытым текстом.
+      function makeVlessLink(server, endpoint) {
+        var p = reality[server.code];
+        var query = 'encryption=none&flow=' + encodeURIComponent(p.flow)
+          + '&type=tcp&security=reality&sni=' + encodeURIComponent(p.sni)
+          + '&fp=' + encodeURIComponent(p.fp) + '&pbk=' + encodeURIComponent(p.pbk)
+          + '&sid=' + encodeURIComponent(p.sid);
+        var remark = server.flag + ' ' + server.code.toUpperCase() + (uid ? ' - ' + uid : '');
+        return 'vless://' + encodeURIComponent(uuid) + '@' + endpoint.ip + ':' + endpoint.port
+          + '?' + query + '#' + encodeURIComponent(remark);
+      }
+
+      // Поддерживаем короткий старый формат, прежние готовые ссылки и новый вариант c=ru1.
       var links = {};
       var found = 0;
       for (var i = 0; i < servers.length; i++) {
@@ -299,9 +325,8 @@
           var plain = params.get(sv.code);
           l = (plain && /^vless:\/\//.test(plain)) ? plain : null;
         }
-        if (!l && uuid) {
-          var remark = sv.flag + ' ' + sv.code.toUpperCase() + (uid ? ' - ' + uid : '');
-          l = 'vless://' + uuid + '@' + sv.ip + ':443?' + base + '#' + encodeURIComponent(remark);
+        if (!l && uuid && activeConfig && activeConfig[sv.code]) {
+          l = makeVlessLink(sv, activeConfig[sv.code]);
         }
         if (l) { links[sv.code] = l; found++; }
       }
@@ -331,7 +356,7 @@
         try {
           var b = subB64.replace(/-/g, '+').replace(/_/g, '/');
           while (b.length % 4) b += '=';
-          links.sub = atob(b);
+          links.sub = fromB64(subB64);
         } catch (e) { links.sub = subB64; }
         html += '<div class="card"><h2>Подписка (все серверы)</h2>'
           + '<button class="btn btn-sub" data-key="sub">🔗 Скопировать ссылку-подписку</button></div>';
